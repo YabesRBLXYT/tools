@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator Pecahan</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        .calculator {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 300px;
+        }
+        .calculator input {
+            width: 100%;
+            padding: 10px;
+            font-size: 20px;
+            text-align: right;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 5px;
+            box-shadow: inset 0px 0px 5px rgba(0, 0, 0, 0.1);
+        }
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-gap: 10px;
+        }
+        .buttons button {
+            padding: 20px;
+            font-size: 18px;
+            border: none;
+            background-color: #eee;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .buttons button:hover {
+            background-color: #ccc;
+        }
+        .fraction-display {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .fraction-display span {
+            font-size: 30px;
+        }
+        .fraction-display .denominator {
+            border-top: 2px solid black;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="calculator">
+        <input type="text" id="display" disabled>
+
+        <div class="buttons">
+            <button onclick="insertValue('1')">1</button>
+            <button onclick="insertValue('2')">2</button>
+            <button onclick="insertValue('3')">3</button>
+            <button onclick="insertOperator('+')">+</button>
+
+            <button onclick="insertValue('4')">4</button>
+            <button onclick="insertValue('5')">5</button>
+            <button onclick="insertValue('6')">6</button>
+            <button onclick="insertOperator('-')">-</button>
+
+            <button onclick="insertValue('7')">7</button>
+            <button onclick="insertValue('8')">8</button>
+            <button onclick="insertValue('9')">9</button>
+            <button onclick="insertOperator('*')">*</button>
+
+            <button onclick="insertValue('0')">0</button>
+            <button onclick="insertFraction()">Pecahan</button>
+            <button onclick="clearDisplay()">C</button>
+            <button onclick="insertOperator('/')">/</button>
+
+            <button onclick="calculate()" style="grid-column: span 4;">=</button>
+        </div>
+        
+        <div class="fraction-display">
+            <span id="numerator"></span>
+            <span class="denominator" id="denominator"></span>
+        </div>
+    </div>
+
+    <script>
+        let displayValue = '';
+        let fractionMode = false;
+        let numerator = '';
+        let denominator = '';
+
+        function insertValue(value) {
+            if (fractionMode) {
+                denominator += value;
+                document.getElementById('denominator').innerText = denominator;
+            } else {
+                displayValue += value;
+                document.getElementById('display').value = displayValue;
+            }
+        }
+
+        function insertOperator(operator) {
+            if (!fractionMode) {
+                displayValue += ` ${operator} `;
+                document.getElementById('display').value = displayValue;
+            }
+        }
+
+        function insertFraction() {
+            fractionMode = true;
+            numerator = displayValue;
+            document.getElementById('numerator').innerText = numerator;
+            displayValue = '';  // Reset the display for the denominator input
+        }
+
+        function calculate() {
+            if (fractionMode && numerator && denominator) {
+                const fraction = parseFloat(numerator) / parseFloat(denominator);
+                displayValue = fraction.toString();
+                fractionMode = false;
+                document.getElementById('numerator').innerText = '';
+                document.getElementById('denominator').innerText = '';
+            }
+            
+            try {
+                displayValue = eval(displayValue);
+            } catch (error) {
+                displayValue = 'Error';
+            }
+
+            document.getElementById('display').value = displayValue;
+        }
+
+        function clearDisplay() {
+            displayValue = '';
+            fractionMode = false;
+            numerator = '';
+            denominator = '';
+            document.getElementById('display').value = '';
+            document.getElementById('numerator').innerText = '';
+            document.getElementById('denominator').innerText = '';
+        }
+    </script>
+
+</body>
+</html>

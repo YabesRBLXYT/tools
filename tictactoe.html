@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            height: 100vh;
+            margin: 0;
+        }
+
+        h1 {
+            margin-top: 20px;
+        }
+
+        #playerInputs, #boardSizeSelector, #botDifficultySelector, #scoreboard, #resetButton {
+            margin-top: 10px;
+        }
+
+        #board {
+            display: grid;
+            grid-gap: 5px;
+            margin: 20px auto;
+            background-color: white;
+            border: 2px solid #333;
+            width: fit-content;
+        }
+
+        .cell {
+            background-color: #fff;
+            border: 2px solid #333;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        #scoreboard div {
+            margin-bottom: 10px;
+        }
+
+        #resetButton {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        #playerInputs input {
+            margin: 5px;
+            padding: 5px;
+            font-size: 16px;
+            width: 150px;
+        }
+
+        #boardSizeSelector, #botDifficultySelector {
+            margin-bottom: 20px;
+        }
+
+        #botToggle {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Tic Tac Toe</h1>
+    
+    <div id="playerInputs">
+        <input type="text" id="playerX" placeholder="Nama Pemain X" value="Pemain X">
+        <input type="text" id="playerO" placeholder="Nama Pemain O" value="Pemain O">
+    </div>
+    
+    <div id="boardSizeSelector">
+        <label for="boardSize">Ukuran Papan:</label>
+        <select id="boardSize">
+            <option value="3">3x3</option>
+            <option value="4">4x4</option>
+            <option value="5">5x5</option>
+        </select>
+    </div>
+
+    <div id="botToggle">
+        <label for="botMode">Main dengan Bot</label>
+        <input type="checkbox" id="botMode">
+    </div>
+
+    <div id="botDifficultySelector" style="display:none;">
+        <label for="botDifficulty">Tingkat Kesulitan:</label>
+        <select id="botDifficulty">
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+            <option value="expert">Expert</option>
+        </select>
+    </div>
+
+    <div id="board"></div>
+    
+    <div id="scoreboard">
+        <div><span id="playerXName">Pemain X</span>: <span id="scoreX">0</span></div>
+        <div><span id="playerOName">Pemain O</span>: <span id="scoreO">0</span></div>
+    </div>
+    
+    <button id="resetButton">Reset Score</button>
+
+    <script>
+        const boardContainer = document.getElementById('board');
+        const boardSizeSelector = document.getElementById('boardSize');
+        const scoreX = document.getElementById('scoreX');
+        const scoreO = document.getElementById('scoreO');
+        const resetButton = document.getElementById('resetButton');
+        const playerXInput = document.getElementById('playerX');
+        const playerOInput = document.getElementById('playerO');
+        const playerXNameDisplay = document.getElementById('playerXName');
+        const playerONameDisplay = document.getElementById('playerOName');
+        const botModeToggle = document.getElementById('botMode');
+        const botDifficultySelector = document.getElementById('botDifficultySelector');
+        const botDifficulty = document.getElementById('botDifficulty');
+
+        let currentPlayer = 'X';
+        let board = [];
+        let score = { X: 0, O: 0 };
+        let gameActive = true;
+        let boardSize = 3;
+        let botMode = false;
+        let botThinking = false; // Blokir input saat bot sedang berpikir
+
+        function createBoard(size) {
+            boardSize = size;
+            board = Array(size * size).fill(null);
+            boardContainer.style.gridTemplateColumns = `repeat(${size}, 60px)`;
+            boardContainer.innerHTML = '';
+            for (let i = 0; i < size * size; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.style.width = `60px`;
+                cell.style.height = `60px`;
+                cell.addEventListener('click', handleClick);
+                boardContainer.appendChild(cell);
+            }
+            clearBoard(); // Hapus papan jika ukuran diubah
+        }
+
+        function handleClick(e) {
+            if (botThinking || !gameActive) return; // Cegah klik saat bot berpikir atau permainan berakhir
+
+            const cell = e.target;
+            const cellIndex = Array.from(boardContainer.children).indexOf(cell);
+
+            if (board[cellIndex] !== null) {
+                return;
+            }
+
+            board[cellIndex] = currentPlayer;
+            cell.textContent = currentPlayer;
+
+            if (checkWin(currentPlayer)) {
+                endGame(false);
+            } else if (board.every(cell => cell !== null)) {
+                endGame(true);
+            } else {
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                if (botMode && currentPlayer === 'O') {
+                    botThinking = true;
+                    setTimeout(botMove, 500); // Jeda 500ms sebelum bot bergerak
+                }
+            }
+        }
+
+        function botMove() {
+            let move;
+            switch (botDifficulty.value) {
+                case 'easy':
+                    move = easyBotMove();
+                    break;
+                case 'medium':
+                    move = mediumBotMove();
+                    break;
+                case 'hard':
+                    move = hardBotMove();
+                    break;
+                case 'expert':
+                    move = expertBotMove();
+                    break;
+            }
+
+            if (move !== undefined) {
+                board[move] = 'O';
+                const cell = boardContainer.children[move];
+                cell.textContent = 'O';
+                checkAfterBotMove();
+            }
+
+            botThinking = false; // Bot telah selesai bergerak
+            currentPlayer = 'X'; // Kembalikan pemain asli setelah bot selesai
+        }
+
+        function easyBotMove() {
+            const emptyCells = board.map((val, index) => val === null ? index : null).filter(val => val !== null);
+            return emptyCells[Math.floor(Math.random() * emptyCells.length)];
+        }
+
+        function mediumBotMove() {
+            const move = blockOrWin('O');
+            return move !== null ? move : easyBotMove(); 
+        }
+
+        function hardBotMove() {
+            let move = blockOrWin('O');
+            if (move === null) {
+                move = blockOrWin('X');
+            }
+            return move !== null ? move : easyBotMove(); 
+        }
+
+        function expertBotMove() {
+            const bestMove = minimax(board, 'O', -Infinity, Infinity).index;
+            return bestMove;
+        }
+
+        function blockOrWin(player) {
+            for (let i = 0; i < board.length; i++) {
+                if (board[i] === null) {
+                    board[i] = player;
+                    if (checkWin(player)) {
+                        board[i] = null;
+                        return i; 
+                    }
+                    board[i] = null;
+                }
+            }
+            return null;
+        }
+
+        function minimax(newBoard, player, alpha, beta) {
+            const availSpots = newBoard.map((val, index) => val === null ? index : null).filter(val => val !== null);
+
+            if (checkWin('X')) {
+                return { score: -10 };
+            } else if (checkWin('O')) {
+                return { score: 10 };
+            } else if (availSpots.length === 0) {
+                return { score: 0 };
+            }
+
+            let bestMove = {};
+            if (player === 'O') {
+                let bestScore = -Infinity;
+                for (let i = 0; i < availSpots.length; i++) {
+                    const move = availSpots[i];
+                    newBoard[move] = 'O';
+                    const result = minimax(newBoard, 'X', alpha, beta);
+                    newBoard[move] = null;
+                    if (result.score > bestScore) {
+                        bestScore = result.score;
+                        bestMove = { index: move, score: bestScore };
+                    }
+                    alpha = Math.max(alpha, bestScore);
+                    if (beta <= alpha) {
+                        break;
+                    }
+                }
+            } else {
+                let bestScore = Infinity;
+                for (let i = 0; i < availSpots.length; i++) {
+                    const move = availSpots[i];
+                    newBoard[move] = 'X';
+                    const result = minimax(newBoard, 'O', alpha, beta);
+                    newBoard[move] = null;
+                    if (result.score < bestScore) {
+                        bestScore = result.score;
+                        bestMove = { index: move, score: bestScore };
+                    }
+                    beta = Math.min(beta, bestScore);
+                    if (beta <= alpha) {
+                        break;
+                    }
+                }
+            }
+
+            return bestMove;
+        }
+
+        function checkAfterBotMove() {
+            if (checkWin('O')) {
+                endGame(false);
+            } else if (board.every(cell => cell !== null)) {
+                endGame(true);
+            } else {
+                currentPlayer = 'X'; // Kembali ke pemain manusia setelah bot
+            }
+        }
+
+        function checkWin(player) {
+            const size = boardSize;
+            const lines = [];
+
+            // Horizontal
+            for (let i = 0; i < size; i++) {
+                lines.push(board.slice(i * size, i * size + size));
+            }
+
+            // Vertical
+            for (let i = 0; i < size; i++) {
+                const line = [];
+                for (let j = 0; j < size; j++) {
+                    line.push(board[i + j * size]);
+                }
+                lines.push(line);
+            }
+
+            // Diagonal
+            const diagonal1 = [];
+            const diagonal2 = [];
+            for (let i = 0; i < size; i++) {
+                diagonal1.push(board[i * (size + 1)]);
+                diagonal2.push(board[(i + 1) * (size - 1)]);
+            }
+            lines.push(diagonal1, diagonal2);
+
+            return lines.some(line => line.every(cell => cell === player));
+        }
+
+        function endGame(draw) {
+            if (draw) {
+                alert('Permainan seri!');
+            } else {
+                alert(`Pemain ${getCurrentPlayerName()} menang!`);
+                score[currentPlayer]++;
+                updateScoreboard();
+            }
+            gameActive = false;
+            setTimeout(resetGame, 1000); // Reset papan setelah 1 detik
+        }
+
+        function updateScoreboard() {
+            scoreX.textContent = score.X;
+            scoreO.textContent = score.O;
+        }
+
+        function resetGame() {
+            clearBoard(); // Hapus papan
+            currentPlayer = 'X';
+            gameActive = true;
+            if (botMode && currentPlayer === 'O') {
+                setTimeout(botMove, 500);
+            }
+        }
+
+        function clearBoard() {
+            board.fill(null);
+            Array.from(boardContainer.children).forEach(cell => {
+                cell.textContent = '';
+            });
+        }
+
+        function resetScore() {
+            score.X = 0;
+            score.O = 0;
+            updateScoreboard();
+        }
+
+        function updatePlayerNames() {
+            playerXNameDisplay.textContent = playerXInput.value;
+            playerONameDisplay.textContent = playerOInput.value;
+        }
+
+        function getCurrentPlayerName() {
+            return currentPlayer === 'X' ? playerXInput.value : playerOInput.value;
+        }
+
+        boardSizeSelector.addEventListener('change', (e) => {
+            const newSize = parseInt(e.target.value);
+            if (newSize !== boardSize) {
+                createBoard(newSize);
+            }
+        });
+
+        botModeToggle.addEventListener('change', (e) => {
+            botMode = e.target.checked;
+            botDifficultySelector.style.display = botMode ? 'block' : 'none';
+            clearBoard(); // Hapus papan saat mode bot diaktifkan atau dimatikan
+            gameActive = true; // Mulai permainan baru
+        });
+
+        botDifficulty.addEventListener('change', (e) => {
+            clearBoard(); // Hapus papan saat tingkat kesulitan bot diubah
+            gameActive = true; // Mulai permainan baru
+            if (botMode && currentPlayer === 'O') {
+                setTimeout(botMove, 500);
+            }
+        });
+
+        resetButton.addEventListener('click', resetScore);
+        playerXInput.addEventListener('input', updatePlayerNames);
+        playerOInput.addEventListener('input', updatePlayerNames);
+
+        createBoard(boardSize); // Inisialisasi papan pertama kali
+    </script>
+</body>
+          </html>
+          
